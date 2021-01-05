@@ -46,14 +46,10 @@ class Trainer:
             self._report(step, reward, mean_reward, epsilon)
             if self.replay_buffer_is_not_full(step):
                 continue
-            
-            # doubleDQN
-            q_vals_next_state = self.target_model(state_v)
-            target = reward + self.gamma * q_vals_next_state[action]
-
+           
             self.train_network_sgd(target)
-
             self.sync_target_network(step)
+            
             if self.check_point(reward, mean_reward):
                 break
 
@@ -84,7 +80,7 @@ class Trainer:
 
     def train_network_sgd(self, target):
         self.optimizer.zero_grad()
-        loss = self.calculate_loss()
+        loss = self.calculate_loss(target)
         loss.backward()
         self.optimizer.step()
 
@@ -101,12 +97,15 @@ class Trainer:
         state_action_values = self.model(states_v).gather(
             1, actions_v.unsqueeze(-1)).squeeze(-1)
         with torch.no_grad():
-            next_state_values = self.target_model(next_states_v).max(1)[0]
+            q_values_next = self.model(next_states_v)
+            best_actions = np.argmax(q_values_next)
+            # todo: 打印type->得到
+            next_state_values = self.target_model(next_states_v)      
             next_state_values[done_mask] = 0.0
             next_state_values = next_state_values.detach()
 
-        expected_state_action_values = next_state_values * self.conf.discountFactor + \
-            rewards_v
+        expected_state_action_values = self.conf.discountFactor*next_states_values[] \
+            +rewards_v
         return nn.MSELoss()(state_action_values,
                             expected_state_action_values)
 
