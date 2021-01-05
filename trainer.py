@@ -40,14 +40,19 @@ class Trainer:
         while True:
             step += 1
             epsilon = self._get_epsilon(step)
-            reward = self.agent.play_step(
+            reward, state_v, action = self.agent.play_step(
                 net=self.model, epsilon=epsilon, device=self.device)
             mean_reward = self.mean_reward(reward)
             self._report(step, reward, mean_reward, epsilon)
             if self.replay_buffer_is_not_full(step):
                 continue
+            
+            # doubleDQN
+            q_vals_next_state = self.target_model(state_v)
+            target = reward + self.gamma * q_vals_next_state[action]
 
-            self.train_network_sgd()
+            self.train_network_sgd(target)
+
             self.sync_target_network(step)
             if self.check_point(reward, mean_reward):
                 break
@@ -77,7 +82,7 @@ class Trainer:
     def replay_buffer_is_not_full(self, step):
         return len(self.buffer) < self.conf.replayBufferStart
 
-    def train_network_sgd(self):
+    def train_network_sgd(self, target):
         self.optimizer.zero_grad()
         loss = self.calculate_loss()
         loss.backward()

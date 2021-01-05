@@ -1,5 +1,10 @@
 import torch
 import numpy as np
+import collections
+
+Experience = collections.namedtuple('Experience', field_names=[
+                                    'state', 'action', 'reward', 'done', 'new_state'])
+
 
 class Agent:
     def __init__(self, env, exp_buffer):
@@ -8,7 +13,7 @@ class Agent:
         self._reset()
 
     def _reset(self):
-        #Remeebr to remove self from env
+        # Remeebr to remove self from env
         self.state = self.env.reset()
         self.total_reward = 0.0
 
@@ -36,4 +41,4 @@ class Agent:
         if is_done:
             done_reward = self.total_reward
             self._reset()
-        return done_reward
+        return done_reward, state_v, action
