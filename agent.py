@@ -19,6 +19,8 @@ class Agent:
 
     @torch.no_grad()
     def play_step(self, net, epsilon=0.0, device="cpu"):
+        self.env.render()
+
         done_reward = None
 
         if np.random.random() < epsilon:
@@ -41,4 +43,4 @@ class Agent:
         if is_done:
             done_reward = self.total_reward
             self._reset()
-        return done_reward, state_v, action
+        return done_reward

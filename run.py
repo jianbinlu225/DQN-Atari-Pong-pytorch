@@ -1,6 +1,7 @@
 from trainer import Trainer
 from datetime import datetime
 import torch
+torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 class Config(dict):
     """Simple class that provides dot access to the properties"""

@@ -10,6 +10,8 @@ from wrappers import make_env
 from agent import Agent
 from tensorboardX import SummaryWriter
 
+import os
+
 
 class Trainer:
     def __init__(self, config):
@@ -40,14 +42,14 @@ class Trainer:
         while True:
             step += 1
             epsilon = self._get_epsilon(step)
-            reward, state_v, action = self.agent.play_step(
+            reward = self.agent.play_step(
                 net=self.model, epsilon=epsilon, device=self.device)
             mean_reward = self.mean_reward(reward)
             self._report(step, reward, mean_reward, epsilon)
             if self.replay_buffer_is_not_full(step):
                 continue
            
-            self.train_network_sgd(target)
+            self.train_network_sgd()
             self.sync_target_network(step)
             
             if self.check_point(reward, mean_reward):
@@ -78,9 +80,9 @@ class Trainer:
     def replay_buffer_is_not_full(self, step):
         return len(self.buffer) < self.conf.replayBufferStart
 
-    def train_network_sgd(self, target):
+    def train_network_sgd(self):
         self.optimizer.zero_grad()
-        loss = self.calculate_loss(target)
+        loss = self.calculate_loss()
         loss.backward()
         self.optimizer.step()
 
@@ -94,18 +96,20 @@ class Trainer:
         actions_v = torch.tensor(actions, dtype=torch.int64).to(self.device)
         rewards_v = torch.tensor(rewards).to(self.device)
         done_mask = torch.BoolTensor(dones).to(self.device)
-        state_action_values = self.model(states_v).gather(
+        state_action_values = self.model(states_v)
+        state_action_values = state_action_values.gather(
             1, actions_v.unsqueeze(-1)).squeeze(-1)
         with torch.no_grad():
-            q_values_next = self.model(next_states_v)
-            best_actions = np.argmax(q_values_next)
-            # todo: 打印type->得到
-            next_state_values = self.target_model(next_states_v)      
+            q_next_state_values = self.model(next_states_v)
+            best_actions = q_next_state_values.max(1)[1]
+            target_next_state_values = self.target_model(next_states_v)
+            next_state_values = target_next_state_values.gather(
+                1, best_actions.unsqueeze(-1)).squeeze(-1)
             next_state_values[done_mask] = 0.0
             next_state_values = next_state_values.detach()
 
-        expected_state_action_values = self.conf.discountFactor*next_states_values[] \
-            +rewards_v
+        expected_state_action_values = self.conf.discountFactor*next_state_values \
+            + rewards_v
         return nn.MSELoss()(state_action_values,
                             expected_state_action_values)
 
