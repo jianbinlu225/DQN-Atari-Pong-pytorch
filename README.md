@@ -17,3 +17,7 @@ Homework
 
 - 训练：`python run.py`
 - 测试：`python test.py`
+
+查看数据：
+
+`tensorboard --logdir==./runsRB10k`
