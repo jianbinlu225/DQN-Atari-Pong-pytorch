@@ -52,7 +52,7 @@ class Trainer:
             self.train_network_sgd()
             self.sync_target_network(step)
             
-            if self.check_point(reward, mean_reward):
+            if self.check_point(step, reward, mean_reward):
                 break
 
     def _get_epsilon(self, step):
@@ -117,7 +117,9 @@ class Trainer:
         if step % self.conf.syncNetworkFrequency == 0:
             self.target_model.load_state_dict(self.model.state_dict())
 
-    def check_point(self, reward, mean_reward):
+    def check_point(self, step, reward, mean_reward):
+        if step % 100000 == 0:
+            torch.save(self.model.state_dict(), "temp.dat")
         if reward is None:
             return False
         if self.best_reward is None or self.best_reward < reward:
